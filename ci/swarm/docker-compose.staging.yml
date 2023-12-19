@@ -1,0 +1,61 @@
+version: '3.8'
+services:
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.9.0
+    # command: "--strict.perms=false"
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.role == worker]
+    configs:
+      - source: filebeat-conf-1
+        target: /usr/share/filebeat/filebeat.yml
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro # Mount Docker container logs
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - proxy
+    user: root
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.9.0
+    command: bash -c "bin/logstash-plugin install logstash-output-newrelic && logstash -f /usr/share/logstash/pipeline/logstash.conf"
+    environment:
+      # - ClienteID=${ClienteID}
+      # ClienteID: 953
+      EnvironmentDeploy: ServicesStaging
+      # ClienteID: 954
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == worker]
+    configs:
+    - source: logstash-conf-1
+      target: /usr/share/logstash/config/logstash.yml
+    - source: logstash-pipeline-1
+      target: /usr/share/logstash/pipeline/logstash.conf
+    networks:
+      - proxy
+
+  # newrelic:
+  #   image: newrelic/log-ingestion:latest
+  #   environment:
+  #     # - NEW_RELIC_LICENSE_KEY=YOUR_LICENSE_KEY # Replace with your New Relic license key
+  #     - NEW_RELIC_LICENSE_KEY=
+  #   deploy:
+  #     replicas: 0
+  #   networks:
+  #     - proxy
+
+networks:
+  proxy:
+    external: true
+
+configs:
+  filebeat-conf-1:
+    external: true
+  logstash-conf-1:
+    external: true
+  logstash-pipeline-1:
+    external: true
+    

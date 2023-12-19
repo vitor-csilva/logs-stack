@@ -1,0 +1,30 @@
+# Permissoes do arquivo
+# chmod go-w filebeat.yml
+filebeat.autodiscover:
+  providers:
+    - type: docker
+      hints.enabled: true
+      hints.default_config:
+        type: container
+        paths:
+          - /var/lib/docker/containers/${data.container.id}/*.log
+        exclude_lines: ['healthcheck'] # this is optional
+        multiline.type: pattern
+        multiline.pattern: '^\[#'
+        multiline.negate: true
+        multiline.match: after
+      # templates:
+      # - condition:
+      #     equals:
+      #       docker.container.id : "*"
+      #   config:
+      #     - type: container
+      #       paths:
+      #         - "/var/lib/docker/containers/${data.docker.container.id}/*.log"
+
+# processors:
+#   - add_docker_metadata:
+#       host: "unix:///var/run/docker.sock"
+
+output.logstash:
+  hosts: ["logstash:5044"]
